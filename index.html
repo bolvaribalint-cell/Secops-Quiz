@@ -3,13 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Secops Kft. - Élő Beléptető Rendszerek Kvíz Verseny</title>
-  
+  <title>Secops Kft. - Élő Beléptető Kvíz</title>
+
+  <!-- Google Fonts & FontAwesome -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- FIREWORK ANIMATION -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <!-- FIREBASE LIBRARIES (Compat mode) -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
   <style>
     :root {
@@ -17,23 +24,14 @@
       --card-bg: rgba(255, 255, 255, 0.07);
       --card-border: rgba(255, 255, 255, 0.15);
       --primary: #8b5cf6;
-      --primary-hover: #7c3aed;
       --accent-cyan: #06b6d4;
       --accent-pink: #ec4899;
       --accent-emerald: #10b981;
-      --accent-amber: #f59e0b;
       --text-main: #f8fafc;
       --text-muted: #94a3b8;
-      --shadow-glow: 0 10px 30px -10px rgba(139, 92, 246, 0.5);
     }
 
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: 'Plus Jakarta Sans', sans-serif;
-      user-select: none;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }
 
     body {
       background: var(--bg-gradient);
@@ -42,975 +40,350 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      padding: 16px;
-      overflow-x: hidden;
-      position: relative;
+      padding: 20px;
     }
 
-    /* Floating shapes background */
-    .bg-shape {
-      position: fixed;
-      border-radius: 50%;
-      filter: blur(80px);
-      z-index: 0;
-      pointer-events: none;
-      opacity: 0.35;
-      animation: float 12s infinite alternate ease-in-out;
+    .app-layout {
+      display: flex;
+      gap: 20px;
+      width: 100%;
+      max-width: 1100px;
     }
 
-    .bg-shape-1 {
-      width: 380px;
-      height: 380px;
-      background: #8b5cf6;
-      top: -60px;
-      left: -60px;
-    }
-
-    .bg-shape-2 {
-      width: 420px;
-      height: 420px;
-      background: #ec4899;
-      bottom: -100px;
-      right: -100px;
-      animation-delay: -5s;
-    }
-
-    .bg-shape-3 {
-      width: 280px;
-      height: 280px;
-      background: #06b6d4;
-      top: 35%;
-      left: 75%;
-      animation-delay: -8s;
-    }
-
-    @keyframes float {
-      0% { transform: translate(0, 0) scale(1); }
-      100% { transform: translate(30px, 40px) scale(1.1); }
-    }
-
-    #fireworks-canvas {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      pointer-events: none;
-      z-index: 99;
-    }
-
-    /* Glassmorphism styling */
-    .glass-card {
+    .quiz-container {
+      flex: 1;
       background: var(--card-bg);
       backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
       border: 1px solid var(--card-border);
-      border-radius: 24px;
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.2);
+      border-radius: 28px;
+      padding: 30px;
     }
 
-    /* Custom Scrollbars */
-    ::-webkit-scrollbar {
-      width: 6px;
-    }
-    ::-webkit-scrollbar-track {
-      background: rgba(255, 255, 255, 0.05);
-      border-radius: 10px;
-    }
-    ::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.25);
-      border-radius: 10px;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-      background: rgba(255, 255, 255, 0.4);
+    .leaderboard-container {
+      width: 320px;
+      background: var(--card-bg);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--card-border);
+      border-radius: 28px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
     }
 
-    /* Option button glow */
-    .option-btn.selected {
-      background: rgba(139, 92, 246, 0.25);
-      border-color: #8b5cf6;
-      box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
+    .brand-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      padding-bottom: 15px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     }
 
-    .option-btn.selected .option-letter {
-      background: #8b5cf6;
-      color: #fff;
-      border-color: #8b5cf6;
-    }
-
-    /* Pulse animation for live indicators */
-    .live-dot {
-      width: 10px;
-      height: 10px;
-      background-color: #10b981;
-      border-radius: 50%;
-      box-shadow: 0 0 0 rgba(16, 185, 129, 0.7);
-      animation: pulse-green 1.8s infinite;
-    }
-
-    @keyframes pulse-green {
-      0% {
-        transform: scale(0.95);
-        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
-      }
-      70% {
-        transform: scale(1);
-        box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
-      }
-      100% {
-        transform: scale(0.95);
-        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
-      }
-    }
-
-    .badge-rank {
+    .logo-badge {
+      display: flex;
+      align-items: center;
+      gap: 10px;
       font-family: 'Outfit', sans-serif;
       font-weight: 800;
+      font-size: 20px;
+    }
+
+    .logo-icon {
+      width: 38px;
+      height: 38px;
+      background: linear-gradient(135deg, #06b6d4, #8b5cf6);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Form & Input */
+    .input-group {
+      margin-bottom: 20px;
+      text-align: left;
+    }
+
+    .input-group label {
+      display: block;
+      font-size: 14px;
+      margin-bottom: 8px;
+      color: var(--text-muted);
+    }
+
+    .name-input {
+      width: 100%;
+      padding: 14px 18px;
+      border-radius: 12px;
+      border: 1px solid var(--card-border);
+      background: rgba(0, 0, 0, 0.3);
+      color: white;
+      font-size: 16px;
+      outline: none;
+    }
+
+    .name-input:focus { border-color: var(--accent-cyan); }
+
+    .btn-action {
+      background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+      color: #fff;
+      border: none;
+      padding: 14px 28px;
+      font-size: 16px;
+      font-weight: 700;
+      border-radius: 14px;
+      cursor: pointer;
+      width: 100%;
+      transition: transform 0.2s;
+    }
+
+    .btn-action:hover { transform: translateY(-2px); }
+
+    /* Leaderboard List */
+    .lb-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .player-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      overflow-y: auto;
+      max-height: 450px;
+    }
+
+    .player-card {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .player-info { display: flex; align-items: center; gap: 10px; }
+    .player-name { font-weight: 600; font-size: 14px; }
+    .player-status { font-size: 12px; color: var(--accent-cyan); }
+    .player-score { font-weight: 800; font-color: var(--accent-pink); font-size: 15px; }
+
+    /* Quiz Area */
+    .question-title { font-family: 'Outfit', sans-serif; font-size: 22px; margin-bottom: 20px; }
+    .options-grid { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; }
+    
+    .option-btn {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 14px 18px;
+      color: white;
+      text-align: left;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .option-btn:hover { background: rgba(255, 255, 255, 0.1); }
+    .option-btn.selected { background: rgba(139, 92, 246, 0.3); border-color: var(--primary); }
+
+    @media (max-width: 768px) {
+      .app-layout { flex-direction: column; }
+      .leaderboard-container { width: 100%; }
     }
   </style>
 </head>
-<body class="relative">
+<body>
 
-  <!-- Floating Background Shapes -->
-  <div class="bg-shape bg-shape-1"></div>
-  <div class="bg-shape bg-shape-2"></div>
-  <div class="bg-shape bg-shape-3"></div>
-
-  <!-- Fireworks Overlay Canvas -->
-  <canvas id="fireworks-canvas"></canvas>
-
-  <div class="relative z-10 w-full max-w-6xl mx-auto my-4 flex flex-col lg:flex-row gap-6">
-    
-    <!-- LEFT / MAIN PANEL: Quiz Area -->
-    <div class="glass-card flex-1 p-6 sm:p-10 transition-all duration-300">
-      
-      <!-- Brand Header -->
-      <div class="flex items-center justify-between pb-5 mb-6 border-b border-white/10">
-        <div class="flex items-center gap-3 font-extrabold text-xl sm:text-2xl tracking-tight text-white font-['Outfit']">
-          <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center text-white text-lg shadow-lg shadow-cyan-500/30">
-            <i class="fa-solid fa-shield-halved"></i>
-          </div>
-          <span>SECOPS <span class="text-cyan-400">KFT.</span></span>
-        </div>
-        <div class="flex items-center gap-2">
-          <span class="bg-pink-500/20 text-pink-300 border border-pink-500/40 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
-            <i class="fa-solid fa-bolt mr-1"></i> Élő Verseny
-          </span>
+  <div class="app-layout">
+    <!-- MAIN QUIZ AREA -->
+    <div class="quiz-container">
+      <div class="brand-header">
+        <div class="logo-badge">
+          <div class="logo-icon"><i class="fa-solid fa-shield-halved"></i></div>
+          <span>SECOPS <span style="color:var(--accent-cyan)">LIVE</span></span>
         </div>
       </div>
 
-      <!-- VIEW 1: JOIN / LOGIN SCREEN -->
-      <div id="screen-login" class="text-center py-4">
-        <h1 class="font-['Outfit'] text-3xl sm:text-5xl font-extrabold mb-3 bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">
-          Beléptető Rendszerek Kvíz
-        </h1>
-        <p class="text-slate-400 text-sm sm:text-base max-w-xl mx-auto mb-8">
-          Csatlakozz a közös élő versenyhez! Add meg a nevedet, töltsd ki a kvízt, és küzdj meg a munkatársakkal a közös ranglistán való első helyért!
-        </p>
-
-        <!-- Rule Cards Grid -->
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8 text-center">
-          <div class="bg-white/5 border border-white/10 rounded-2xl p-4">
-            <i class="fa-solid fa-users text-2xl text-cyan-400 mb-2"></i>
-            <h4 class="font-bold text-sm text-white">Közös Szoba</h4>
-            <p class="text-xs text-slate-400 mt-1">Valós idejű élő ranglista</p>
-          </div>
-          <div class="bg-white/5 border border-white/10 rounded-2xl p-4">
-            <i class="fa-solid fa-stopwatch text-2xl text-pink-400 mb-2"></i>
-            <h4 class="font-bold text-sm text-white">Gyorsaság & Pontosság</h4>
-            <p class="text-xs text-slate-400 mt-1">10 szakmai kérdés</p>
-          </div>
-          <div class="bg-white/5 border border-white/10 rounded-2xl p-4">
-            <i class="fa-solid fa-trophy text-2xl text-emerald-400 mb-2"></i>
-            <h4 class="font-bold text-sm text-white">Élő Értékelés</h4>
-            <p class="text-xs text-slate-400 mt-1">Azonnali sorrend frissülés</p>
-          </div>
+      <!-- LOGIN SCREEN -->
+      <div id="login-screen">
+        <h2 style="margin-bottom: 10px;">Csatlakozás a Kvízhez</h2>
+        <p style="color: var(--text-muted); margin-bottom: 20px;">Add meg a neved a belépéshez, és küzdj meg a többiekkel élőben!</p>
+        <div class="input-group">
+          <label>Teljes név / Becenév:</label>
+          <input type="text" id="username-input" class="name-input" placeholder="pl. Kovács Péter">
         </div>
-
-        <!-- Name Input Form -->
-        <div class="max-w-md mx-auto bg-white/5 p-6 rounded-2xl border border-white/10 shadow-xl">
-          <label for="player-name-input" class="block text-left text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
-            <i class="fa-solid fa-user-tag mr-1 text-purple-400"></i> Neved / Beceneved:
-          </label>
-          <input type="text" id="player-name-input" maxlength="25" placeholder="Pl.: Kovács Péter..." 
-            class="w-full bg-slate-900/80 border border-slate-700 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/50 rounded-xl px-4 py-3.5 text-white font-semibold placeholder-slate-500 outline-none transition-all mb-4">
-          
-          <button id="btn-join" onclick="handleJoinQuiz()" 
-            class="w-full bg-gradient-to-r from-purple-600 via-pink-600 to-cyan-500 hover:from-purple-500 hover:to-cyan-400 text-white font-bold py-4 px-6 rounded-xl shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 transform hover:-translate-y-0.5 active:translate-y-0 transition-all flex items-center justify-center gap-2 text-lg">
-            <span>Csatlakozás a Versenyhez</span>
-            <i class="fa-solid fa-rocket"></i>
-          </button>
-        </div>
+        <button class="btn-action" onclick="joinQuiz()">Indulás! <i class="fa-solid fa-rocket"></i></button>
       </div>
 
-      <!-- VIEW 2: QUIZ QUESTION SCREEN -->
-      <div id="screen-quiz" class="hidden">
-        
-        <!-- Progress Bar -->
-        <div class="w-full bg-white/10 h-2.5 rounded-full overflow-hidden mb-6">
-          <div id="progress-bar-fill" class="h-full bg-gradient-to-r from-cyan-400 via-purple-500 to-pink-500 transition-all duration-300 rounded-full w-0"></div>
+      <!-- QUESTION SCREEN -->
+      <div id="quiz-screen" style="display: none;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 15px; font-size: 14px; color: var(--accent-cyan);">
+          <span id="q-counter">1 / 10 Kérdés</span>
         </div>
-
-        <!-- Question Header Meta -->
-        <div class="flex justify-between items-center mb-5">
-          <span id="question-counter" class="text-xs sm:text-sm font-bold text-cyan-400 uppercase tracking-wider">
-            1 / 10 Kérdés
-          </span>
-          <div id="dots-container" class="flex gap-1.5"></div>
-        </div>
-
-        <!-- Question Text -->
-        <h2 id="question-text" class="font-['Outfit'] text-xl sm:text-2xl font-bold leading-snug mb-6 min-h-[60px] text-white">
-          Kérdés betöltése...
-        </h2>
-
-        <!-- Options List -->
-        <div id="options-container" class="flex flex-col gap-3.5 mb-8">
-          <!-- Dynamic options buttons generated here -->
-        </div>
-
-        <!-- Navigation Buttons -->
-        <div class="flex items-center justify-between gap-4 pt-2 border-t border-white/10">
-          <button id="btn-prev" onclick="prevQuestion()" disabled
-            class="px-5 py-3 rounded-xl bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed text-white font-semibold text-sm transition-all flex items-center gap-2">
-            <i class="fa-solid fa-arrow-left"></i> Előző
-          </button>
-          
-          <button id="btn-next" onclick="nextQuestion()"
-            class="px-7 py-3.5 rounded-xl bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white font-bold text-base shadow-lg shadow-cyan-500/30 transform hover:-translate-y-0.5 active:translate-y-0 transition-all flex items-center gap-2">
-            <span>Tovább</span> <i class="fa-solid fa-arrow-right"></i>
-          </button>
-        </div>
+        <h2 id="q-title" class="question-title">Kérdés...</h2>
+        <div id="options-container" class="options-grid"></div>
+        <button id="next-btn" class="btn-action" onclick="nextQuestion()">Tovább <i class="fa-solid fa-arrow-right"></i></button>
       </div>
 
-      <!-- VIEW 3: RESULTS SCREEN -->
-      <div id="screen-result" class="hidden text-center py-2">
-        
-        <div class="relative w-32 h-32 mx-auto mb-6 flex items-center justify-center">
-          <div class="absolute inset-0 rounded-full bg-gradient-to-br from-pink-500 via-purple-500 to-cyan-400 p-1 shadow-2xl shadow-pink-500/50 animate-pulse"></div>
-          <div class="relative w-28 h-28 bg-slate-900 rounded-full flex flex-col items-center justify-center">
-            <span id="result-score-num" class="font-['Outfit'] text-4xl font-black bg-gradient-to-r from-cyan-400 to-pink-400 bg-clip-text text-transparent">0</span>
-            <span class="text-xs text-slate-400 font-bold uppercase tracking-wider">/ 10 pont</span>
-          </div>
-        </div>
-
-        <h2 id="result-title" class="font-['Outfit'] text-2xl sm:text-3xl font-extrabold mb-2 text-white">Gratulálunk!</h2>
-        <p id="result-subtitle" class="text-slate-400 text-sm mb-6 max-w-lg mx-auto">Sikeresen befejezted a beléptető rendszerek élő kvízt!</p>
-
-        <!-- Detailed Review Accordion / List -->
-        <div class="text-left mb-6">
-          <div class="flex items-center gap-2 font-['Outfit'] font-bold text-lg text-white mb-3">
-            <i class="fa-solid fa-clipboard-check text-cyan-400"></i>
-            <span>Részletes Válaszelemzés</span>
-          </div>
-          
-          <div id="review-list" class="flex flex-col gap-3 max-h-[360px] overflow-y-auto pr-2">
-            <!-- Review cards injected here -->
-          </div>
-        </div>
-
-        <button onclick="restartQuiz()" 
-          class="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold py-3.5 px-8 rounded-xl shadow-lg shadow-purple-500/30 transform hover:-translate-y-0.5 transition-all inline-flex items-center gap-2">
-          <i class="fa-solid fa-rotate-right"></i> Újrapróbálkozás
-        </button>
-      </div>
-
-    </div>
-
-    <!-- RIGHT PANEL: Live Leaderboard -->
-    <div class="glass-card w-full lg:w-80 p-6 flex flex-col">
-      <div class="flex items-center justify-between pb-4 mb-4 border-b border-white/10">
-        <div class="flex items-center gap-2">
-          <div class="live-dot"></div>
-          <h3 class="font-['Outfit'] font-bold text-lg text-white tracking-wide">Élő Ranglista</h3>
-        </div>
-        <span id="player-count-badge" class="bg-cyan-500/20 text-cyan-300 text-xs font-bold px-2.5 py-1 rounded-full border border-cyan-500/30">
-          0 résztvevő
-        </span>
-      </div>
-
-      <div class="text-xs text-slate-400 mb-3 flex justify-between items-center px-1">
-        <span>HELYEZÉS / NÉV</span>
-        <span>PONT / HALADÁS</span>
-      </div>
-
-      <!-- Leaderboard Scrollable Container -->
-      <div id="leaderboard-list" class="flex-1 overflow-y-auto flex flex-col gap-2.5 max-h-[480px] lg:max-h-none pr-1">
-        <div class="text-center text-slate-500 py-8 text-xs italic">
-          <i class="fa-solid fa-spinner fa-spin text-lg mb-2 block"></i>
-          Csatlakozás az élő szerverhez...
-        </div>
-      </div>
-
-      <!-- Admin Reset Tool (Small footer button) -->
-      <div class="mt-4 pt-3 border-t border-white/10 text-center">
-        <button onclick="clearLeaderboard()" title="Ranglista törlése (Admin)" class="text-[11px] text-slate-500 hover:text-slate-300 underline transition-colors">
-          <i class="fa-solid fa-trash-can mr-1"></i> Verseny adatok alaphelyzetbe
-        </button>
+      <!-- RESULT SCREEN -->
+      <div id="result-screen" style="display: none; text-align: center;">
+        <h2>Kvíz Befejezve! 🎉</h2>
+        <p style="margin: 15px 0; font-size: 18px;">Pontszámod: <b id="final-score" style="color: var(--accent-pink);">0</b> / 10</p>
+        <p style="color: var(--text-muted);">Nézd meg a jobb oldali ranglistán, hanyadik helyen végeztél!</p>
       </div>
     </div>
 
+    <!-- LIVE LEADERBOARD -->
+    <div class="leaderboard-container">
+      <div class="lb-title">
+        <i class="fa-solid fa-trophy" style="color: var(--accent-pink);"></i> Élő Ranglista
+      </div>
+      <div id="player-list" class="player-list">
+        <div style="color: var(--text-muted); font-size: 13px;">Csatlakozás a szerverhez...</div>
+      </div>
+    </div>
   </div>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { 
-      getAuth, 
-      signInAnonymously, 
-      signInWithCustomToken, 
-      onAuthStateChanged 
-    } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { 
-      getFirestore, 
-      collection, 
-      doc, 
-      setDoc, 
-      onSnapshot, 
-      deleteDoc, 
-      getDocs 
-    } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-    const appId = typeof __app_id !== 'undefined' ? __app_id : 'secops-live-quiz';
+  <script>
+    // ⚠️ IDE MÁSOLD BE A SAJÁT FIREBASE CONFIG-ODAT ⚠️
     const firebaseConfig = {
+
     apiKey: "AIzaSyAcmoMJm-Ra_k9CZaU-_6DS-IE3wlF9x4o",
+
     authDomain: "quiz-6bdbf.firebaseapp.com",
+
     projectId: "quiz-6bdbf",
+
     storageBucket: "quiz-6bdbf.firebasestorage.app",
+
     messagingSenderId: "538999682049",
+
     appId: "1:538999682049:web:3984f8f1e000823a0e3c00",
+
     measurementId: "G-NDTFCSVZ42"
+
   };
 
 
+    // Firebase Inicializálása
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-
-    // Global App State
-    window.appState = {
-      user: null,
-      playerName: '',
-      currentQuestion: 0,
-      userAnswers: new Array(10).fill(null),
-      completed: false,
-      score: 0,
-      playersData: []
-    };
-
-    // Initialize Auth
-    async function initAuth() {
-      try {
-        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-          await signInWithCustomToken(auth, __initial_auth_token);
-        } else {
-          await signInAnonymously(auth);
-        }
-      } catch (err) {
-        console.warn("Auth initialization error, using anonymous fallback:", err);
-        await signInAnonymously(auth).catch(e => console.error("Fallback failed", e));
-      }
-    }
-
-    onAuthStateChanged(auth, (user) => {
-      if (user) {
-        window.appState.user = user;
-        subscribeToLeaderboard();
-      }
-    });
-
-    initAuth();
-
-    // Firestore Path helper
-    function getPlayersCollectionRef() {
-      return collection(db, 'artifacts', appId, 'public', 'data', 'players');
-    }
-
-    function subscribeToLeaderboard() {
-      if (!window.appState.user) return;
-      const playersCol = getPlayersCollectionRef();
-
-      onSnapshot(playersCol, (snapshot) => {
-        const players = [];
-        snapshot.forEach((docSnap) => {
-          players.push({ id: docSnap.id, ...docSnap.data() });
-        });
-
-        // Sort players: completed first (by score), then by highest score, then by progress
-        players.sort((a, b) => {
-          if (b.score !== a.score) {
-            return b.score - a.score;
-          }
-          if (b.progress !== a.progress) {
-            return b.progress - a.progress;
-          }
-          return (a.timestamp || 0) - (b.timestamp || 0);
-        });
-
-        window.appState.playersData = players;
-        renderLeaderboard(players);
-      }, (err) => {
-        console.error("Leaderboard subscription error:", err);
-      });
-    }
-
-    // Sync player state to Firestore
-    async function syncPlayerToCloud() {
-      if (!window.appState.user || !window.appState.playerName) return;
-
-      const userId = window.appState.user.uid;
-      const playerDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'players', userId);
-
-      const answeredCount = window.appState.userAnswers.filter(a => a !== null).length;
-      let calculatedScore = 0;
-      questions.forEach((q, idx) => {
-        if (window.appState.userAnswers[idx] === q.correct) {
-          calculatedScore++;
-        }
-      });
-      window.appState.score = calculatedScore;
-
-      try {
-        await setDoc(playerDocRef, {
-          name: window.appState.playerName,
-          score: calculatedScore,
-          progress: window.appState.completed ? 10 : window.appState.currentQuestion + 1,
-          answeredCount: answeredCount,
-          completed: window.appState.completed,
-          timestamp: Date.now()
-        }, { merge: true });
-      } catch (err) {
-        console.error("Cloud sync error:", err);
-      }
-    }
-
-    // Global clear for reset button
-    window.clearLeaderboard = async function() {
-      if (!window.appState.user) return;
-      if (!confirm("Biztosan törölni szeretnéd a ranglistát az összes résztvevővel?")) return;
-
-      try {
-        const playersCol = getPlayersCollectionRef();
-        const docsSnap = await getDocs(playersCol);
-        const promises = docsSnap.docs.map(d => deleteDoc(d.ref));
-        await Promise.all(promises);
-      } catch (err) {
-        console.error("Error clearing leaderboard:", err);
-      }
-    };
-
-    window.syncPlayerToCloud = syncPlayerToCloud;
-  </script>
-
-  <script>
     const questions = [
-      {
-        question: "Mire szolgál a vésznyitó (zöld gomb) a beléptető rendszerekben?",
-        options: [
-          "Szoftveresen küld egy értesítést a diszpécsernek.",
-          "Megszakítja a zár tápellátását, szoftvertől és vezérlőtől függetlenül.",
-          "Lezárja az összes ajtót az épületben szabotázs esetén.",
-          "Halk riasztást indít el a biztonsági szolgálat felé."
-        ],
-        correct: 1,
-        explanation: "PPT alapján: A vésznyitó vészhelyzetben megszakítja a zár tápellátását, szoftvertől és vezérlőtől függetlenül, közvetlenül a zár tápvonalába kötve."
-      },
-      {
-        question: "Milyen zárat ÉS kiegészítőt KÖTELEZŐ alkalmazni menekülési útvonalon lévő ajtónál?",
-        options: [
-          "Fail-Secure zárat és számkódos billentyűzetet",
-          "Motoros zárat és nyitásérzékelőt",
-          "Fail-Safe zárat és vésznyitót",
-          "Síktapadó mágnest és kártyaelnyelőt"
-        ],
-        correct: 2,
-        explanation: "PPT alapján: Ha az érintett ajtó menekülési úton van, kötelező a Fail-Safe zár (áramkimaradásra nyit) és a vésznyitó!"
-      },
-      {
-        question: "Milyen működésű a Fail-Safe zárszerkezet (pl. síktapadó mágnes)?",
-        options: [
-          "Feszültség ráadására nyit ki",
-          "Áramkimaradás esetén nyit ki (árammentes állapotban nyitott)",
-          "Csak feszültség jelenlétében marad nyitva",
-          "Mindig mechanikusan reteszelve marad áramszünetkor"
-        ],
-        correct: 1,
-        explanation: "PPT alapján: A Fail-Safe zárak áramkimaradásra nyitnak (feszültségmentes állapotban biztosítják a szabad átjutást)."
-      },
-      {
-        question: "Mekkora a Wiegand protokoll maximális javasolt távolsága a gyakorlatban?",
-        options: [
-          "Max. 10 - 15 méter",
-          "Max. 30 - 40 méter",
-          "Max. 300 - 600 méter",
-          "Max. 90 méter"
-        ],
-        correct: 1,
-        explanation: "PPT alapján: A Wiegand protokoll javasolt maximális távolsága a gyakorlatban 30-40 méter."
-      },
-      {
-        question: "Melyik protokoll teszi lehetővé a kétirányú kommunikációt és a 300–600 méteres távolságot az olvasó és vezérlő között?",
-        options: [
-          "Wiegand",
-          "IP / Ethernet",
-          "OSDP (RS485 alapon)",
-          "Bluetooth / NFC"
-        ],
-        correct: 2,
-        explanation: "PPT alapján: Az OSDP protokoll árnyékolt csavart érpáron kétirányú kommunikációt biztosít 300-600 méter gyakorlati távolságig."
-      },
-      {
-        question: "Mit kell figyelembe venni alapesetben egy tűzgátló ajtó szerelésekor?",
-        options: [
-          "Bárhol megfúrható a zárfogadó rögzítéséhez",
-          "Alapesetben úgy kell számolni, hogy nem fúrható meg",
-          "Csak a zsanérok felőli oldalon fúrható",
-          "Minden esetben le kell cserélni fa ajtólapra"
-        ],
-        correct: 1,
-        explanation: "PPT alapján: Tűzgátló ajtók esetén alapesetben úgy kell számolni, hogy nem fúrhatod meg a minősítés megtartása érdekében."
-      },
-      {
-        question: "Milyen jelet ad át a Tűzjelző központ a beléptető rendszer felé vészhelyzetben?",
-        options: [
-          "230V-os erősáramú feszültséglökést",
-          "Szárazkontaktus jelet, ami automatikusan kioldja a menekülési út zárait",
-          "Wiegand 26 bites titkosított adatsort",
-          "High-speed Ethernet adatcsomagot"
-        ],
-        correct: 1,
-        explanation: "PPT alapján: A tűzjelző központból érkező szárazkontaktus jel automatikusan kioldja a menekülési útvonalon lévő zárakat."
-      },
-      {
-        question: "Mekkora a maximális kábelhossz Cat5e/Cat6 kábellel a vezérlő és a szerver között (IP/Ethernet)?",
-        options: [
-          "40 méter",
-          "90 méter",
-          "300 méter",
-          "600 méter"
-        ],
-        correct: 1,
-        explanation: "PPT alapján: IP/Ethernet (Cat5e/Cat6) esetén a vezérlő és szerver között a maximális távolság 90 méter."
-      },
-      {
-        question: "Melyik a leggyakoribb kivitelezési hiba az RS485 buszvezetékezésnél?",
-        options: [
-          "A kábel túl vastag átmérője",
-          "Rossz topológia (nem soros lánc) és a 120 Ohm-os lezáró ellenállás hiánya/helytelensége",
-          "Az utólagos Wi-Fi interferencia",
-          "A Wiegand impulzusok kioltása"
-        ],
-        correct: 1,
-        explanation: "PPT alapján: RS485 jellegzetes hibái: Rossz topológia (csak soros lánc lehet!), helytelen 120 Ohm-os lezáró ellenállás és feszültségesés."
-      },
-      {
-        question: "Melyik eszköz felelős azért, hogy jelezze a rendszernek, ha az ajtó FIZIKAILAG nyitva van?",
-        options: [
-          "A kilépő gomb",
-          "A kártyaolvasó",
-          "A nyitásérzékelő",
-          "Az ajtóvezérlő tápegysége"
-        ],
-        correct: 2,
-        explanation: "PPT alapján: A nyitásérzékelő feladata, hogy jelezze a rendszer felé, ha az ajtó fizikailag nyitott állapotban van."
-      }
+      { q: "Mire szolgál a vésznyitó (zöld gomb) a beléptető rendszerekben?", opts: ["Szoftveres értesítést küld.", "Megszakítja a zár tápellátását.", "Lezárja az ajtókat.", "Halk riasztást ad."], c: 1 },
+      { q: "Milyen zárat ÉS kiegészítőt KÖTELEZŐ alkalmazni menekülési útvonalon?", opts: ["Fail-Secure + billentyűzet", "Motoros zár + nyitásérzékelő", "Fail-Safe + vésznyitó", "Síktapadó + kártyaelnyelő"], c: 2 },
+      { q: "Milyen működésű a Fail-Safe zárszerkezet?", opts: ["Feszültségre nyit", "Áramkimaradásra nyit", "Csak feszültséggel marad nyitva", "Mindig reteszelve marad"], c: 1 },
+      { q: "Mekkora a Wiegand protokoll max. javasolt távolsága a gyakorlatban?", opts: ["10-15 m", "30-40 m", "300-600 m", "90 m"], c: 1 },
+      { q: "Melyik protokoll teszi lehetővé a 300-600 méteres távolságot és kétirányú kommunikációt?", opts: ["Wiegand", "IP / Ethernet", "OSDP (RS485)", "Bluetooth"], c: 2 },
+      { q: "Mit kell figyelembe venni egy tűzgátló ajtó szerelésekor?", opts: ["Bárhol megfúrható", "Alapesetben nem fúrható meg", "Csak zsanér felől fúrható", "Cserélni kell fa ajtóra"], c: 1 },
+      { q: "Milyen jelet ad át a Tűzjelző központ a beléptető felé?", opts: ["230V lökés", "Szárazkontaktus jelet", "Wiegand adatsort", "Ethernet csomagot"], c: 1 },
+      { q: "Mekkora a max. kábelhossz Cat5e/Cat6 kábellel (IP/Ethernet)?", opts: ["40 m", "90 m", "300 m", "600 m"], c: 1 },
+      { q: "Leggyakoribb kivitelezési hiba az RS485-nél?", opts: ["Túl vastag kábel", "Rossz topológia és lezáró ellenállás hiánya", "Wi-Fi interferencia", "Wiegand kioltás"], c: 1 },
+      { q: "Melyik eszköz jelez, ha az ajtó FIZIKAILAG nyitva van?", opts: ["Kilépő gomb", "Kártyaolvasó", "Nyitásérzékelő", "Tápegység"], c: 2 }
     ];
 
-    // UI DOM Elements
-    const screenLogin = document.getElementById('screen-login');
-    const screenQuiz = document.getElementById('screen-quiz');
-    const screenResult = document.getElementById('screen-result');
-    const playerNameInput = document.getElementById('player-name-input');
-    const progressBarFill = document.getElementById('progress-bar-fill');
-    const questionCounter = document.getElementById('question-counter');
-    const dotsContainer = document.getElementById('dots-container');
-    const questionText = document.getElementById('question-text');
-    const optionsContainer = document.getElementById('options-container');
-    const btnPrev = document.getElementById('btn-prev');
-    const btnNext = document.getElementById('btn-next');
-    const leaderboardList = document.getElementById('leaderboard-list');
-    const playerCountBadge = document.getElementById('player-count-badge');
+    let myPlayerId = null;
+    let currentQ = 0;
+    let score = 0;
+    let selectedOpt = null;
 
-    // Handle Join Quiz button
-    function handleJoinQuiz() {
-      const name = playerNameInput.value.trim();
-      if (!name) {
-        alert("Kérjük, add meg a nevedet a csatlakozáshoz!");
-        return;
-      }
+    // Élő Ranglista Figyelése
+    db.collection("quiz_players").onSnapshot((snapshot) => {
+      const listEl = document.getElementById("player-list");
+      listEl.innerHTML = "";
+      
+      let players = [];
+      snapshot.forEach(doc => players.push({ id: doc.id, ...doc.data() }));
 
-      window.appState.playerName = name;
-      window.appState.currentQuestion = 0;
-      window.appState.userAnswers.fill(null);
-      window.appState.completed = false;
+      // Rendezés pontszám szerint
+      players.sort((a, b) => b.score - a.score);
 
-      screenLogin.classList.add('hidden');
-      screenQuiz.classList.remove('hidden');
+      players.forEach(p => {
+        const card = document.createElement("div");
+        card.className = "player-card";
+        card.innerHTML = `
+          <div class="player-info">
+            <i class="fa-solid fa-user-circle" style="font-size: 20px;"></i>
+            <div>
+              <div class="player-name">${p.name} ${p.id === myPlayerId ? ' (Te)' : ''}</div>
+              <div class="player-status">${p.qIndex < 10 ? (p.qIndex + 1) + '. kérdés' : 'Kész!'}</div>
+            </div>
+          </div>
+          <div class="player-score">${p.score} pt</div>
+        `;
+        listEl.appendChild(card);
+      });
+    });
 
-      initDots();
-      loadQuestion();
-      if (window.syncPlayerToCloud) window.syncPlayerToCloud();
-    }
+    function joinQuiz() {
+      const name = document.getElementById("username-input").value.trim();
+      if (!name) return alert("Kérlek, add meg a neved!");
 
-    function initDots() {
-      dotsContainer.innerHTML = '';
-      for (let i = 0; i < questions.length; i++) {
-        const dot = document.createElement('div');
-        dot.className = 'w-2.5 h-2.5 rounded-full bg-white/20 transition-all duration-300';
-        dotsContainer.appendChild(dot);
-      }
-    }
-
-    function updateDots() {
-      const dots = dotsContainer.children;
-      for (let i = 0; i < dots.length; i++) {
-        dots[i].className = 'w-2.5 h-2.5 rounded-full transition-all duration-300';
-        if (window.appState.userAnswers[i] !== null) {
-          dots[i].classList.add('bg-purple-500');
-        } else {
-          dots[i].classList.add('bg-white/20');
-        }
-
-        if (i === window.appState.currentQuestion) {
-          dots[i].classList.remove('bg-white/20');
-          dots[i].classList.add('bg-pink-500', 'scale-125', 'shadow-lg', 'shadow-pink-500/50');
-        }
-      }
+      myPlayerId = 'p_' + Math.random().toString(36).substr(2, 9);
+      
+      // Játékos létrehozása az adatbázisban
+      db.collection("quiz_players").doc(myPlayerId).set({
+        name: name,
+        score: 0,
+        qIndex: 0,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }).then(() => {
+        document.getElementById("login-screen").style.display = "none";
+        document.getElementById("quiz-screen").style.display = "block";
+        loadQuestion();
+      });
     }
 
     function loadQuestion() {
-      const idx = window.appState.currentQuestion;
-      const q = questions[idx];
+      const q = questions[currentQ];
+      document.getElementById("q-counter").textContent = `${currentQ + 1} / 10 Kérdés`;
+      document.getElementById("q-title").textContent = `${currentQ + 1}. ${q.q}`;
+      
+      const optContainer = document.getElementById("options-container");
+      optContainer.innerHTML = "";
+      selectedOpt = null;
 
-      questionText.textContent = `${idx + 1}. ${q.question}`;
-      questionCounter.textContent = `${idx + 1} / ${questions.length} Kérdés`;
-
-      // Update progress bar
-      const percent = ((idx + 1) / questions.length) * 100;
-      progressBarFill.style.width = `${percent}%`;
-
-      // Options
-      optionsContainer.innerHTML = '';
-      const letters = ['A', 'B', 'C', 'D'];
-
-      q.options.forEach((opt, optIdx) => {
-        const isSelected = window.appState.userAnswers[idx] === optIdx;
-        const btn = document.createElement('button');
-        btn.className = `option-btn w-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/25 rounded-2xl p-4 sm:p-5 flex items-center gap-4 text-left transition-all duration-200 cursor-pointer text-sm sm:text-base text-slate-100 ${isSelected ? 'selected' : ''}`;
-        
-        btn.onclick = () => selectOption(optIdx);
-
-        btn.innerHTML = `
-          <div class="option-letter w-9 h-9 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center font-['Outfit'] font-bold text-sm shrink-0">
-            ${letters[optIdx]}
-          </div>
-          <div class="font-medium leading-relaxed">${opt}</div>
-        `;
-
-        optionsContainer.appendChild(btn);
+      q.opts.forEach((opt, idx) => {
+        const btn = document.createElement("button");
+        btn.className = "option-btn";
+        btn.textContent = opt;
+        btn.onclick = () => {
+          document.querySelectorAll(".option-btn").forEach(b => b.classList.remove("selected"));
+          btn.classList.add("selected");
+          selectedOpt = idx;
+        };
+        optContainer.appendChild(btn);
       });
-
-      btnPrev.disabled = idx === 0;
-      if (idx === questions.length - 1) {
-        btnNext.innerHTML = '<span>Eredmények</span> <i class="fa-solid fa-flag-checkered"></i>';
-      } else {
-        btnNext.innerHTML = '<span>Tovább</span> <i class="fa-solid fa-arrow-right"></i>';
-      }
-
-      updateDots();
-    }
-
-    function selectOption(optIndex) {
-      const currentQ = window.appState.currentQuestion;
-      window.appState.userAnswers[currentQ] = optIndex;
-
-      // Update options styling
-      const children = optionsContainer.children;
-      for (let i = 0; i < children.length; i++) {
-        children[i].classList.remove('selected');
-      }
-      children[optIndex].classList.add('selected');
-
-      updateDots();
-      if (window.syncPlayerToCloud) window.syncPlayerToCloud();
     }
 
     function nextQuestion() {
-      if (window.appState.currentQuestion < questions.length - 1) {
-        window.appState.currentQuestion++;
-        loadQuestion();
-        if (window.syncPlayerToCloud) window.syncPlayerToCloud();
-      } else {
-        finishQuiz();
-      }
-    }
+      if (selectedOpt === null) return alert("Válassz egy választ!");
 
-    function prevQuestion() {
-      if (window.appState.currentQuestion > 0) {
-        window.appState.currentQuestion--;
-        loadQuestion();
-        if (window.syncPlayerToCloud) window.syncPlayerToCloud();
-      }
-    }
-
-    function finishQuiz() {
-      window.appState.completed = true;
-      screenQuiz.classList.add('hidden');
-      screenResult.classList.remove('hidden');
-
-      if (window.syncPlayerToCloud) window.syncPlayerToCloud();
-
-      // Score counter animation
-      let score = window.appState.score;
-      const scoreNumEl = document.getElementById('result-score-num');
-      let counter = 0;
-      const timer = setInterval(() => {
-        if (counter >= score) {
-          scoreNumEl.textContent = score;
-          clearInterval(timer);
-        } else {
-          counter++;
-          scoreNumEl.textContent = counter;
-        }
-      }, 70);
-
-      // Result Messages
-      const resultTitle = document.getElementById('result-title');
-      const resultSub = document.getElementById('result-subtitle');
-
-      if (score === 10) {
-        resultTitle.textContent = "Zseniális! Tökéletes SecOps Mester!";
-        resultSub.textContent = "Minden kérdésre hibátlanul válaszoltál! Bekerültél az élő ranglista élére!";
-      } else if (score >= 7) {
-        resultTitle.textContent = "Nagyszerű Eredmény!";
-        resultSub.textContent = "Kiemelkedő tudással rendelkezel a beléptető és biztonságtechnikai alapokról!";
-      } else if (score >= 5) {
-        resultTitle.textContent = "Szép Próbálkozás!";
-        resultSub.textContent = "Az alapok megvannak, de érdemes még átnézni a szakmai anyagot!";
-      } else {
-        resultTitle.textContent = "Tanulni Sosem Késő!";
-        resultSub.textContent = "Nézd át újra a prezentációt, és próbáld meg újra a kvízt!";
+      if (selectedOpt === questions[currentQ].c) {
+        score++;
       }
 
-      // Render Review List
-      const reviewList = document.getElementById('review-list');
-      reviewList.innerHTML = '';
-      const letters = ['A', 'B', 'C', 'D'];
+      currentQ++;
 
-      questions.forEach((q, idx) => {
-        const userChoiceIdx = window.appState.userAnswers[idx];
-        const isCorrect = userChoiceIdx === q.correct;
-        const userChoiceText = userChoiceIdx !== null ? `${letters[userChoiceIdx]}) ${q.options[userChoiceIdx]}` : 'Nem válaszoltál';
-        const correctChoiceText = `${letters[q.correct]}) ${q.options[q.correct]}`;
-
-        const card = document.createElement('div');
-        card.className = `p-4 rounded-2xl border text-xs sm:text-sm ${
-          isCorrect 
-            ? 'bg-emerald-500/10 border-emerald-500/30 border-l-4 border-l-emerald-500' 
-            : 'bg-rose-500/10 border-rose-500/30 border-l-4 border-l-rose-500'
-        }`;
-
-        card.innerHTML = `
-          <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-            Kérdés ${idx + 1}
-          </div>
-          <div class="font-bold text-white mb-2">${q.question}</div>
-          
-          <div class="flex items-center gap-2 mb-1">
-            <span class="font-bold text-slate-400 w-24 shrink-0">Válaszod:</span>
-            <span class="${isCorrect ? 'text-emerald-400 font-semibold' : 'text-rose-400 font-semibold'}">
-              <i class="fa-solid ${isCorrect ? 'fa-circle-check' : 'fa-circle-xmark'} mr-1"></i>
-              ${userChoiceText}
-            </span>
-          </div>
-
-          ${!isCorrect ? `
-          <div class="flex items-center gap-2 mb-2">
-            <span class="font-bold text-slate-400 w-24 shrink-0">Helyes válasz:</span>
-            <span class="text-cyan-400 font-semibold">
-              <i class="fa-solid fa-circle-right mr-1"></i>
-              ${correctChoiceText}
-            </span>
-          </div>` : ''}
-
-          <div class="mt-2 pt-2 border-t border-white/10 text-slate-300 italic text-[11px]">
-            <i class="fa-solid fa-lightbulb text-amber-400 mr-1"></i> ${q.explanation}
-          </div>
-        `;
-
-        reviewList.appendChild(card);
+      // Adatbázis frissítés Élőben
+      db.collection("quiz_players").doc(myPlayerId).update({
+        score: score,
+        qIndex: currentQ
       });
 
-      launchFireworks();
-    }
-
-    function restartQuiz() {
-      screenResult.classList.add('hidden');
-      screenLogin.classList.remove('hidden');
-      stopFireworks();
-    }
-
-    function renderLeaderboard(players) {
-      playerCountBadge.textContent = `${players.length} résztvevő`;
-
-      if (players.length === 0) {
-        leaderboardList.innerHTML = `
-          <div class="text-center text-slate-500 py-8 text-xs italic">
-            Még nincs aktív résztvevő.<br>Légy te az első!
-          </div>`;
-        return;
+      if (currentQ < questions.length) {
+        loadQuestion();
+      } else {
+        document.getElementById("quiz-screen").style.display = "none";
+        document.getElementById("result-screen").style.display = "block";
+        document.getElementById("final-score").textContent = score;
+        confetti();
       }
-
-      leaderboardList.innerHTML = '';
-      const currentUserId = window.appState.user ? window.appState.user.uid : null;
-
-      players.forEach((p, idx) => {
-        const isMe = p.id === currentUserId;
-        const rank = idx + 1;
-
-        let rankBadge = `<span class="badge-rank text-slate-400 text-xs w-6">${rank}.</span>`;
-        if (rank === 1) rankBadge = `<span class="text-amber-400 text-base w-6"><i class="fa-solid fa-trophy"></i></span>`;
-        else if (rank === 2) rankBadge = `<span class="text-slate-300 text-sm w-6"><i class="fa-solid fa-medal"></i></span>`;
-        else if (rank === 3) rankBadge = `<span class="text-amber-700 text-sm w-6"><i class="fa-solid fa-award"></i></span>`;
-
-        const row = document.createElement('div');
-        row.className = `p-3 rounded-xl border flex items-center justify-between text-xs transition-all ${
-          isMe 
-            ? 'bg-purple-600/30 border-purple-500/60 shadow-lg shadow-purple-500/20' 
-            : 'bg-white/5 border-white/10 hover:bg-white/10'
-        }`;
-
-        row.innerHTML = `
-          <div class="flex items-center gap-2 overflow-hidden mr-2">
-            ${rankBadge}
-            <div class="truncate">
-              <div class="font-bold text-white truncate flex items-center gap-1.5">
-                ${escapeHtml(p.name)}
-                ${isMe ? '<span class="bg-cyan-500/30 text-cyan-300 text-[9px] px-1.5 py-0.5 rounded font-extrabold uppercase">Én</span>' : ''}
-              </div>
-              <div class="text-[10px] text-slate-400">
-                ${p.completed ? '<span class="text-emerald-400 font-semibold"><i class="fa-solid fa-check"></i> Befejezve</span>' : `Folyamatban: ${p.progress || 1}/10`}
-              </div>
-            </div>
-          </div>
-          <div class="text-right shrink-0">
-            <div class="font-extrabold text-white text-sm font-['Outfit']">${p.score || 0} <span class="text-[10px] font-normal text-slate-400">pt</span></div>
-            <div class="text-[10px] text-slate-400">${p.answeredCount || 0}/10 válasz</div>
-          </div>
-        `;
-
-        leaderboardList.appendChild(row);
-      });
-    }
-
-    function escapeHtml(str) {
-      return String(str || '').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-    }
-
-    // Attach globals to window for inline HTML handlers
-    window.handleJoinQuiz = handleJoinQuiz;
-    window.nextQuestion = nextQuestion;
-    window.prevQuestion = prevQuestion;
-    window.restartQuiz = restartQuiz;
-  </script>
-
-  <script>
-    const canvas = document.getElementById('fireworks-canvas');
-    const ctx = canvas.getContext('2d');
-    let particles = [];
-    let fireworksAnimId = null;
-
-    function resizeCanvas() {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    }
-    window.addEventListener('resize', resizeCanvas);
-    resizeCanvas();
-
-    class Particle {
-      constructor(x, y, color) {
-        this.x = x;
-        this.y = y;
-        this.color = color;
-        this.radius = Math.random() * 3 + 2;
-        const angle = Math.random() * Math.PI * 2;
-        const speed = Math.random() * 8 + 2;
-        this.vx = Math.cos(angle) * speed;
-        this.vy = Math.sin(angle) * speed;
-        this.alpha = 1;
-        this.decay = Math.random() * 0.02 + 0.015;
-        this.gravity = 0.15;
-      }
-
-      draw() {
-        ctx.save();
-        ctx.globalAlpha = this.alpha;
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-        ctx.fillStyle = this.color;
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = this.color;
-        ctx.fill();
-        ctx.restore();
-      }
-
-      update() {
-        this.vx *= 0.98;
-        this.vy *= 0.98;
-        this.vy += this.gravity;
-        this.x += this.vx;
-        this.y += this.vy;
-        this.alpha -= this.decay;
-      }
-    }
-
-    function createFireworkExplosion(x, y) {
-      const colors = ['#f472b6', '#38bdf8', '#fbbf24', '#34d399', '#a78bfa', '#f43f5e'];
-      const count = 55;
-      const color = colors[Math.floor(Math.random() * colors.length)];
-      for (let i = 0; i < count; i++) {
-        particles.push(new Particle(x, y, color));
-      }
-    }
-
-    function launchFireworks() {
-      particles = [];
-      let intervalCount = 0;
-
-      const burstInterval = setInterval(() => {
-        if (intervalCount > 10) {
-          clearInterval(burstInterval);
-          return;
-        }
-        const rx = Math.random() * (canvas.width * 0.8) + canvas.width * 0.1;
-        const ry = Math.random() * (canvas.height * 0.5) + canvas.height * 0.1;
-        createFireworkExplosion(rx, ry);
-        intervalCount++;
-      }, 300);
-
-      function loop() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        for (let i = particles.length - 1; i >= 0; i--) {
-          particles[i].update();
-          particles[i].draw();
-          if (particles[i].alpha <= 0) {
-            particles.splice(i, 1);
-          }
-        }
-
-        fireworksAnimId = requestAnimationFrame(loop);
-      }
-
-      loop();
-    }
-
-    function stopFireworks() {
-      if (fireworksAnimId) {
-        cancelAnimationFrame(fireworksAnimId);
-      }
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      particles = [];
     }
   </script>
 </body>
