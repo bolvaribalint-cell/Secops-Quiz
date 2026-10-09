@@ -371,16 +371,14 @@
     } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
     const appId = typeof __app_id !== 'undefined' ? __app_id : 'secops-live-quiz';
-    const firebaseConfig = typeof __firebase_config !== 'undefined' 
-      ? JSON.parse(__firebase_config) 
-      : {
-          apiKey: "demo-api-key",
-          authDomain: "demo-app.firebaseapp.com",
-          projectId: "demo-app",
-          storageBucket: "demo-app.appspot.com",
-          messagingSenderId: "123456789",
-          appId: "1:123456789:web:abcdef"
-        };
+    const firebaseConfig = {
+  apiKey: "AIzaSy...",
+  authDomain: "secops-kviz.firebaseapp.com",
+  projectId: "secops-kviz",
+  storageBucket: "secops-kviz.appspot.com",
+  messagingSenderId: "123456789",
+  appId: "1:123456789:web:abc123def456"
+};
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
